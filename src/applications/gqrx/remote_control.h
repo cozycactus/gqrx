@@ -81,7 +81,7 @@ public:
         return rc_allowed_hosts;
     }
     void setReceiverStatus(bool enabled);
-    void setGainStages(gain_list_t &gain_list);
+    void setGainStages(const gain_list_t &gain_list);
 
 public slots:
     void setNewFrequency(qint64 freq);

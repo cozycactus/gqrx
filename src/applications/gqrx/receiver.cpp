@@ -58,8 +58,8 @@
  * @param audio_device Audio output device specifier,
  *                     e.g. hw:0 when using ALSA or Portaudio.
  */
-receiver::receiver(const std::string input_device,
-                   const std::string audio_device,
+receiver::receiver(const std::string& input_device,
+                   const std::string& audio_device,
                    unsigned int decimation)
     : d_running(false),
       d_input_rate(96000.0),
@@ -92,7 +92,7 @@ receiver::receiver(const std::string input_device,
         {
             SoapySDR::Kwargs device = devices[0];
             std::cout << "Selected Device Properties" << std::endl;
-            for (SoapySDR::Kwargs::const_iterator it = device.begin(); it != device.end(); it++)
+            for (SoapySDR::Kwargs::const_iterator it = device.begin(); it != device.end(); ++it)
             {
                 std::cout << "  " << it->first << " = " << it->second << std::endl;
             }
@@ -199,7 +199,7 @@ void receiver::stop()
  * @brief Select new input device.
  * @param device
  */
-void receiver::set_input_device(const std::string device)
+void receiver::set_input_device(const std::string& device)
 {
     qDebug() << "Set input device:";
     qDebug() << "  old:" << input_devstr.c_str();
@@ -272,7 +272,7 @@ void receiver::set_input_device(const std::string device)
  * @brief Select new audio output device.
  * @param device
  */
-void receiver::set_output_device(const std::string device)
+void receiver::set_output_device(const std::string& device)
 {
     qDebug() << "Set output device:";
     qDebug() << "   old:" << output_devstr.c_str();
@@ -306,10 +306,10 @@ void receiver::set_output_device(const std::string device)
 
         tb->unlock();
 
-    } catch (std::exception &x) {
+    } catch (const std::exception &x) {
         tb->unlock();
         // handle problems on non-freeing devices
-        throw x;
+        throw;
     }
 }
 
@@ -353,7 +353,7 @@ double receiver::set_input_rate(double rate)
         soapy_src->set_sample_rate(0, rate);
         d_input_rate = soapy_src->get_sample_rate(0);
     }
-    catch (std::runtime_error &e)
+    catch (const std::runtime_error &e)
     {
         d_input_rate = 0;
     }
@@ -1042,7 +1042,7 @@ receiver::status receiver::set_af_gain(float gain_db)
  * file names does not work with WAV files (the initial /tmp/gqrx.wav will not be stopped
  * because the wav file can not be empty). See https://github.com/gqrx-sdr/gqrx/issues/36
  */
-receiver::status receiver::start_audio_recording(const std::string filename)
+receiver::status receiver::start_audio_recording(const std::string& filename)
 {
     if (d_recording_wav)
     {
@@ -1134,7 +1134,7 @@ receiver::status receiver::stop_audio_recording()
 }
 
 /** Start audio playback. */
-receiver::status receiver::start_audio_playback(const std::string filename)
+receiver::status receiver::start_audio_playback(const std::string& filename)
 {
     if (!d_running)
     {
@@ -1219,7 +1219,7 @@ receiver::status receiver::stop_audio_playback()
 }
 
 /** Start UDP streaming of audio. */
-receiver::status receiver::start_udp_streaming(const std::string host, int port, bool stereo)
+receiver::status receiver::start_udp_streaming(const std::string& host, int port, bool stereo)
 {
     audio_udp_sink->start_streaming(host, port, stereo);
     return STATUS_OK;
@@ -1236,7 +1236,7 @@ receiver::status receiver::stop_udp_streaming()
  * @brief Start I/Q data recorder.
  * @param filename The filename where to record.
  */
-receiver::status receiver::start_iq_recording(const std::string filename)
+receiver::status receiver::start_iq_recording(const std::string& filename)
 {
     receiver::status status = STATUS_OK;
 
@@ -1249,7 +1249,7 @@ receiver::status receiver::start_iq_recording(const std::string filename)
     {
         iq_sink = gr::blocks::file_sink::make(sizeof(gr_complex), filename.c_str(), true);
     }
-    catch (std::runtime_error &e)
+    catch (const std::runtime_error &e)
     {
         std::cout << __func__ << ": couldn't open I/Q file" << std::endl;
         return STATUS_ERROR;

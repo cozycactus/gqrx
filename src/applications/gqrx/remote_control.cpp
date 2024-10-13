@@ -32,30 +32,26 @@
 #define DEFAULT_RC_ALLOWED_HOSTS   "127.0.0.1"
 
 RemoteControl::RemoteControl(QObject *parent) :
-    QObject(parent)
+    QObject(parent),
+    rc_socket(0),
+    rc_allowed_hosts(DEFAULT_RC_ALLOWED_HOSTS),
+    rc_port(DEFAULT_RC_PORT),
+    rc_freq(0),
+    rc_filter_offset(0),
+    bw_half(740e3),
+    rc_lnb_lo_mhz(0.0),
+    rc_mode(0),
+    rc_passband_lo(0),
+    rc_passband_hi(0),
+    rds_status(false),
+    signal_level(-200.0),
+    squelch_level(-150.0),
+    audio_gain(-6.0),
+    rc_program_id("0000"),
+    audio_recorder_status(false),
+    receiver_running(false),
+    hamlib_compatible(false)
 {
-
-    rc_freq = 0;
-    rc_filter_offset = 0;
-    bw_half = 740e3;
-    rc_lnb_lo_mhz = 0.0;
-    rc_mode = 0;
-    rc_passband_lo = 0;
-    rc_passband_hi = 0;
-    rc_program_id = "0000";
-    rds_status = false;
-    signal_level = -200.0;
-    squelch_level = -150.0;
-    audio_gain = -6.0;
-    audio_recorder_status = false;
-    receiver_running = false;
-    hamlib_compatible = false;
-
-    rc_port = DEFAULT_RC_PORT;
-    rc_allowed_hosts.append(DEFAULT_RC_ALLOWED_HOSTS);
-
-    rc_socket = 0;
-
     connect(&rc_server, SIGNAL(newConnection()), this, SLOT(acceptConnection()));
 }
 
@@ -335,7 +331,7 @@ void RemoteControl::setNewRemoteFreq(qint64 freq)
         (rc_filter_offset < 0 && rc_filter_offset + rc_passband_lo > -bwh_eff))
     {
         // move filter offset
-        emit newFilterOffset(rc_filter_offset);
+        emit this->newFilterOffset(rc_filter_offset);
     }
     else
     {
@@ -345,7 +341,7 @@ void RemoteControl::setNewRemoteFreq(qint64 freq)
             rc_filter_offset = -0.2f * bwh_eff;
         else
             rc_filter_offset = 0.2f * bwh_eff;
-        emit newFilterOffset(rc_filter_offset);
+        emit this->newFilterOffset(rc_filter_offset);
         emit newFrequency(freq);
     }
 
@@ -384,7 +380,7 @@ void RemoteControl::setReceiverStatus(bool enabled)
 }
 
 /*! \brief Set available gain settings (from mainwindow). */
-void RemoteControl::setGainStages(gain_list_t &gain_list)
+void RemoteControl::setGainStages(const gain_list_t &gain_list)
 {
     gains = gain_list;
 }
@@ -398,7 +394,7 @@ bool RemoteControl::setGain(QString name, double gain)
         {
             if(gain != g.value) {
                 g.value = gain;
-                emit gainChanged(name, gain);
+                emit this->gainChanged(name, gain);
             }
             return true;
         }
@@ -607,11 +603,11 @@ QString RemoteControl::cmd_set_mode(QStringList cmdlist)
         else
         {
             rc_mode = mode;
-            emit newMode(rc_mode);
+            emit this->newMode(rc_mode);
 
             int passband = cmdlist.value(2, "0").toInt();
             if ( passband != 0 )
-                emit newPassband(passband);
+                emit this->newPassband(passband);
 
             if (rc_mode == 0)
                 audio_recorder_status = false;
@@ -689,7 +685,7 @@ QString RemoteControl::cmd_set_level(QStringList cmdlist)
         {
             answer = QString("RPRT 0\n");
             squelch_level = std::max<double>(-150, std::min<double>(0, squelch));
-            emit newSquelchLevel(squelch_level);
+            emit this->newSquelchLevel(squelch_level);
         }
         else
         {
@@ -704,7 +700,7 @@ QString RemoteControl::cmd_set_level(QStringList cmdlist)
         {
             answer = QString("RPRT 0\n");
             new_audio_gain = std::max<float>(-80.0f, std::min<float>(50.0f, new_audio_gain));
-            emit newAudioGain(new_audio_gain);
+            emit this->newAudioGain(new_audio_gain);
         }
         else
         {
@@ -781,18 +777,18 @@ QString RemoteControl::cmd_set_func(QStringList cmdlist)
     else if ((func.compare("DSP", Qt::CaseInsensitive) == 0) && ok)
     {
         if (status)
-            emit dspChanged(true);
+            emit this->dspChanged(true);
         else
-            emit dspChanged(false);
+            emit this->dspChanged(false);
 
         answer = QString("RPRT 0\n");
     }
     else if ((func.compare("RDS", Qt::CaseInsensitive) == 0) && ok)
     {
         if (status)
-            emit newRDSmode(true);
+            emit this->newRDSmode(true);
         else
-            emit newRDSmode(false);
+            emit this->newRDSmode(false);
 
         answer = QString("RPRT 0\n");
     }
@@ -890,7 +886,7 @@ QString RemoteControl::cmd_lnb_lo(QStringList cmdlist)
         if (ok)
         {
             rc_lnb_lo_mhz = freq / 1e6;
-            emit newLnbLo(rc_lnb_lo_mhz);
+            emit this->newLnbLo(rc_lnb_lo_mhz);
             return QString("RPRT 0\n");
         }
 

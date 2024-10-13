@@ -31,13 +31,12 @@
 // MENU_MAX_ENTRIES is limited by action shortcut numbering
 #define MENU_MAX_ENTRIES 9
 
-RecentConfig::RecentConfig(const QString &configDir, QMenu *menu) : QObject()
+RecentConfig::RecentConfig(const QString &configDir, QMenu *menu)
+    : QObject(),
+      cfgfiles(QSharedPointer<QVector<QFileInfo>>::create()), // or cfgfiles(new QVector<QFileInfo>()) for Qt < 5.7
+      menu(menu),
+      configFile(QFileInfo(QDir(configDir), RECENT_CONFIG_FILENAME))
 {
-    this->menu = menu;
-    cfgfiles = QSharedPointer<QVector<QFileInfo>>(new QVector<QFileInfo>());
-
-    configFile = QFileInfo(QDir(configDir), RECENT_CONFIG_FILENAME);
-
     loadRecentConfig();
 
     connect(this, &RecentConfig::configLoaded, this, &RecentConfig::onConfigLoaded);

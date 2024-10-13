@@ -53,6 +53,8 @@
 #include <QLabel>
 #include <QEvent>
 #include <QFocusEvent>
+#include <QMenu>
+#include <QFileInfo>
 
 #if defined(Q_WS_WIN)
 #  if !defined(QT_QTCOLORPICKER_EXPORT) && !defined(QT_QTCOLORPICKER_IMPORT)
@@ -79,7 +81,7 @@ class QT_QTCOLORPICKER_EXPORT QtColorPicker : public QPushButton
     Q_PROPERTY(bool colorDialog READ colorDialogEnabled WRITE setColorDialogEnabled)
 
 public:
-    QtColorPicker(QWidget *parent = 0,
+    explicit QtColorPicker(QWidget *parent = 0,
                   int columns = -1, bool enableColorDialog = true);
 
     ~QtColorPicker();
@@ -113,6 +115,9 @@ private slots:
 private:
     ColorPickerPopup *popup;
     QColor col;
+    QMenu *menu; // For managing context menu
+    QSharedPointer<QVector<QFileInfo>> cfgfiles; // For managing configuration files
+    QFileInfo configFile; // For storing configuration file information
     bool withColorDialog;
     bool dirty;
     bool firstInserted;

@@ -128,7 +128,7 @@ void CIqTool::on_playButton_clicked(bool checked)
         {
             ui->listWidget->setEnabled(false);
             ui->recButton->setEnabled(false);
-            emit startPlayback(recdir->absoluteFilePath(current_file),
+            emit this->startPlayback(recdir->absoluteFilePath(current_file),
                                (float)sample_rate, center_freq);
         }
     }
@@ -162,7 +162,7 @@ void CIqTool::on_slider_valueChanged(int value)
     refreshTimeWidgets();
 
     qint64 seek_pos = (qint64)(value)*sample_rate;
-    emit seek(seek_pos);
+    emit this->seek(seek_pos);
 }
 
 

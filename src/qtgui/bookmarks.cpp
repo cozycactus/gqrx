@@ -166,7 +166,7 @@ bool Bookmarks::save()
             }
         }
 
-        for (QMap<QString, TagInfo::sptr>::iterator i = usedTags.begin(); i != usedTags.end(); i++)
+        for (QMap<QString, TagInfo::sptr>::iterator i = usedTags.begin(); i != usedTags.end(); ++i)
         {
             TagInfo::sptr info = *i;
             stream << info->name.leftJustified(20) + "; " + info->color.name() << '\n';
@@ -224,7 +224,7 @@ QList<BookmarkInfo> Bookmarks::getBookmarksInRange(qint64 low, qint64 high)
         {
           found.append(info);
         }
-        lb++;
+        ++lb;
     }
 
     return found;

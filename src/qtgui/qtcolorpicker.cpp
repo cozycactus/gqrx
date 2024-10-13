@@ -63,6 +63,8 @@
 #include <QKeyEvent>
 #include <QShowEvent>
 #include <QMouseEvent>
+#include <QDir>
+
 #include <math.h>
 
 #include "qtcolorpicker.h"
@@ -145,7 +147,7 @@ class ColorPickerButton : public QFrame
     Q_OBJECT
 
 public:
-    ColorPickerButton(QWidget *parent);
+    explicit ColorPickerButton(QWidget *parent);
 
 signals:
     void clicked();
@@ -169,7 +171,7 @@ class ColorPickerItem : public QFrame
     Q_OBJECT
 
 public:
-    ColorPickerItem(const QColor &color = Qt::white, const QString &text = QString(),
+    explicit ColorPickerItem(const QColor &color = Qt::white, const QString &text = QString(),
 		      QWidget *parent = 0);
     ~ColorPickerItem();
 
@@ -266,9 +268,16 @@ private:
 
     \sa QFrame
 */
-QtColorPicker::QtColorPicker(QWidget *parent,
-			     int cols, bool enableColorDialog)
-    : QPushButton(parent), popup(0), withColorDialog(enableColorDialog)
+QtColorPicker::QtColorPicker(QWidget *parent, int cols, bool enableColorDialog)
+    : QPushButton(parent),
+      popup(new ColorPickerPopup(cols, enableColorDialog, this)),
+      col(Qt::black),
+      menu(new QMenu(this)),
+      cfgfiles(QSharedPointer<QVector<QFileInfo>>::create()),
+      configFile(QFileInfo(QDir(), "default_config.cfg")),
+      withColorDialog(enableColorDialog),
+      dirty(true),
+      firstInserted(false)
 {
     setFocusPolicy(Qt::StrongFocus);
     setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Fixed);
@@ -278,21 +287,15 @@ QtColorPicker::QtColorPicker(QWidget *parent,
 
     // Set text
     setText(tr("Black"));
-    firstInserted = false;
 
-    // Create and set icon
-    col = Qt::black;
-    dirty = true;
+    // Connect color grid popup signals to slots
+    connect(popup, &ColorPickerPopup::selected, this, &QtColorPicker::setCurrentColor);
+    connect(popup, &ColorPickerPopup::hid, this, &QtColorPicker::popupClosed);
 
-    // Create color grid popup and connect to it.
-    popup = new ColorPickerPopup(cols, withColorDialog, this);
-    connect(popup, SIGNAL(selected(const QColor &)),
-	    SLOT(setCurrentColor(const QColor &)));
-    connect(popup, SIGNAL(hid()), SLOT(popupClosed()));
-
-    // Connect this push button's pressed() signal.
-    connect(this, SIGNAL(toggled(bool)), SLOT(buttonPressed(bool)));
+    // Connect this push button's toggled(bool) signal to slot
+    connect(this, &QPushButton::toggled, this, &QtColorPicker::buttonPressed);
 }
+
 
 /*!
     Destructs the QtColorPicker.
@@ -631,12 +634,17 @@ void ColorPickerPopup::insertColor(const QColor &col, const QString &text, int i
 */
 QColor ColorPickerPopup::color(int index) const
 {
-    if (index < 0 || index > (int) items.count() - 1)
+    if (index < 0 || index >= static_cast<int>(items.count()))
         return QColor();
 
-    ColorPickerPopup *that = (ColorPickerPopup *)this;
-    return that->items.at(index)->color();
+    const ColorPickerItem* item = qobject_cast<const ColorPickerItem*>(items.at(index));
+    if (item && item->isSelected()) {
+        return item->color();
+    }
+
+    return QColor();
 }
+
 
 /*! \internal
 
@@ -658,24 +666,31 @@ void ColorPickerPopup::updateSelected()
 {
     QLayoutItem *layoutItem;
     int i = 0;
-    while ((layoutItem = grid->itemAt(i)) != 0) {
-	QWidget *w = layoutItem->widget();
-	if (w && w->inherits("ColorPickerItem")) {
-	    ColorPickerItem *litem = reinterpret_cast<ColorPickerItem *>(layoutItem->widget());
-	    if (litem != sender())
-		litem->setSelected(false);
-	}
-	++i;
+    while ((layoutItem = grid->itemAt(i)) != nullptr) {
+        QWidget *w = layoutItem->widget();
+        if (w) {
+            // Use qobject_cast for safe downcasting
+            ColorPickerItem *litem = qobject_cast<ColorPickerItem *>(w);
+            if (litem && litem != sender()) {
+                litem->setSelected(false);
+                break; // Assuming you want to break the inner loop only
+            }
+        }
+        ++i;
     }
 
-    if (sender() && sender()->inherits("ColorPickerItem")) {
-	ColorPickerItem *item = (ColorPickerItem *)sender();
-	lastSel = item->color();
-	emit selected(item->color());
+    if (sender()) {
+        // Use qobject_cast to safely cast sender() to ColorPickerItem
+        ColorPickerItem *item = qobject_cast<ColorPickerItem *>(sender());
+        if (item) {
+            lastSel = item->color();
+            emit selected(item->color());
+        }
     }
 
     hide();
 }
+
 
 /*! \internal
 
@@ -820,29 +835,39 @@ QColor ColorPickerPopup::lastSelected() const
     Sets focus on the popup to enable keyboard navigation. Draws
     focusRect and selection rect.
 */
+#include <QShowEvent>
+#include <QWidget>
+#include <QVector>
+
+
 void ColorPickerPopup::showEvent(QShowEvent *)
 {
     bool foundSelected = false;
     for (int i = 0; i < grid->columnCount(); ++i) {
-	for (int j = 0; j < grid->rowCount(); ++j) {
-	    QWidget *w = widgetAt[j][i];
-	    if (w && w->inherits("ColorPickerItem")) {
-		if (((ColorPickerItem *)w)->isSelected()) {
-		    w->setFocus();
-		    foundSelected = true;
-		    break;
-		}
-	    }
-	}
+        for (int j = 0; j < grid->rowCount(); ++j) {
+            QWidget *w = widgetAt[j][i];
+            if (w) {
+                ColorPickerItem *item = qobject_cast<ColorPickerItem*>(w);
+                if (item && item->isSelected()) {
+                    w->setFocus();
+                    foundSelected = true;
+                    break;
+                }
+            }
+        }
+        if (foundSelected) {
+            break; 
+        }
     }
 
     if (!foundSelected) {
-	if (items.count() == 0)
-	    setFocus();
-	else
-	    widgetAt[0][0]->setFocus();
+        if (items.isEmpty())
+            setFocus();
+        else if (!widgetAt.isEmpty() && !widgetAt[0].isEmpty())
+            widgetAt[0][0]->setFocus();
     }
 }
+
 
 /*!
 

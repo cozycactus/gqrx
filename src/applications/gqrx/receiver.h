@@ -36,12 +36,6 @@
 #include "dsp/correct_iq_cc.h"
 #include "dsp/downconverter.h"
 #include "dsp/filter/fir_decim.h"
-#include "dsp/rx_noise_blanker_cc.h"
-#include "dsp/rx_filter.h"
-#include "dsp/rx_meter.h"
-#include "dsp/rx_agc_xx.h"
-#include "dsp/rx_demod_fm.h"
-#include "dsp/rx_demod_am.h"
 #include "dsp/rx_fft.h"
 #include "dsp/sniffer_f.h"
 #include "dsp/resampler_xx.h"
@@ -108,15 +102,15 @@ public:
 
     static const unsigned int DEFAULT_FFT_SIZE = 8192;
 
-    receiver(const std::string input_device="",
-             const std::string audio_device="",
+    explicit receiver(const std::string& input_device="",
+             const std::string& audio_device="",
              unsigned int decimation=1);
     ~receiver();
 
     void        start();
     void        stop();
-    void        set_input_device(const std::string device);
-    void        set_output_device(const std::string device);
+    void        set_input_device(const std::string& device);
+    void        set_output_device(const std::string& device);
 
     std::vector<std::string> get_antennas(void) const;
     void        set_antenna(const std::string &antenna);
@@ -199,16 +193,16 @@ public:
 
     /* Audio parameters */
     status      set_af_gain(float gain_db);
-    status      start_audio_recording(const std::string filename);
+    status      start_audio_recording(const std::string& filename);
     status      stop_audio_recording();
-    status      start_audio_playback(const std::string filename);
+    status      start_audio_playback(const std::string& filename);
     status      stop_audio_playback();
 
-    status      start_udp_streaming(const std::string host, int port, bool stereo);
+    status      start_udp_streaming(const std::string& host, int port, bool stereo);
     status      stop_udp_streaming();
 
     /* I/Q recording and playback */
-    status      start_iq_recording(const std::string filename);
+    status      start_iq_recording(const std::string& filename);
     status      stop_iq_recording();
     status      seek_iq_file(long pos);
 

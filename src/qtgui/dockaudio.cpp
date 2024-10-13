@@ -200,7 +200,7 @@ void DockAudio::on_audioGainSlider_valueChanged(int value)
 void DockAudio::on_audioStreamButton_clicked(bool checked)
 {
     if (checked)
-        emit audioStreamingStarted(udp_host, udp_port, udp_stereo);
+        emit this->audioStreamingStarted(udp_host, udp_port, udp_stereo);
     else
         emit audioStreamingStopped();
 }
@@ -221,7 +221,7 @@ void DockAudio::on_audioRecButton_clicked(bool checked)
         QFileInfo info(last_audio);
 
         // emit signal and start timer
-        emit audioRecStarted(last_audio);
+        emit this->audioRecStarted(last_audio);
 
         ui->audioRecLabel->setText(info.fileName());
         ui->audioRecButton->setToolTip(tr("Stop audio recorder"));
@@ -249,7 +249,7 @@ void DockAudio::on_audioPlayButton_clicked(bool checked)
 
         if(info.exists()) {
             // emit signal and start timer
-            emit audioPlayStarted(last_audio);
+            emit this->audioPlayStarted(last_audio);
 
             ui->audioRecLabel->setText(info.fileName());
             ui->audioPlayButton->setToolTip(tr("Stop audio playback"));
